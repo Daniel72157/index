@@ -1,0 +1,900 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>¿Se complicará este dengue? · Analítica predictiva pediátrica</title>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,500;0,6..72,700;1,6..72,500&family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{--night:#08183a;--panel:#10265a;--blue:#2b5fd9;--ice:#e9effb;--paper:#f7f9fd;--ink:#0c1d42;--mute:#5a6a8d;--coral:#e5484d;--mint:#2fb59a;--amber:#e8a33d;--line:#d6deef}
+*{box-sizing:border-box}html{scroll-behavior:smooth}
+body{margin:0;font:16px/1.65 'Instrument Sans',system-ui,sans-serif;color:var(--ink);background:var(--paper)}
+h1,h2,h3,.ser{font-family:'Newsreader',Georgia,serif;font-weight:500;margin:0;letter-spacing:-.01em}
+button{font:inherit;cursor:pointer}
+:focus-visible{outline:3px solid #8fb1ff;outline-offset:2px}
+.wrap{max-width:1040px;margin:0 auto;padding:0 24px}
+/* HERO */
+.hero{background:var(--night);color:#fff;padding:26px 0 56px}
+.brand{font-size:14px;color:#9db4e6;display:flex;justify-content:space-between;margin-bottom:44px}
+.hero h1{font-size:clamp(38px,6.4vw,72px);line-height:1.02;max-width:14ch}
+.hero h1 i{color:#8fb1ff}
+.sub{color:#b4c4ea;max-width:52ch;margin:18px 0 34px}
+.desk{display:grid;grid-template-columns:5fr 6fr;gap:22px}
+@media(max-width:860px){.desk{grid-template-columns:1fr}}
+.ficha,.read{background:var(--panel);border-radius:18px;padding:24px}
+.ficha h3,.read h3{font-size:19px;color:#cfdcff;margin-bottom:14px}
+.pre{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px}
+.pre button{background:transparent;border:1px solid #35508f;color:#cfdcff;border-radius:999px;padding:5px 13px;font-size:13px}
+.pre button:hover{background:#1b3877}
+.hyp{width:100%;display:flex;justify-content:space-between;align-items:center;background:#0a1a40;border:1px solid #35508f;color:#fff;border-radius:12px;padding:12px 16px;margin-bottom:16px}
+.hyp b{font-weight:600}.hyp em{font-style:normal;font-size:12px;padding:3px 10px;border-radius:999px;background:#25407e}
+.hyp[aria-pressed=true]{border-color:var(--coral);background:#3a1527}.hyp[aria-pressed=true] em{background:var(--coral)}
+.v{margin-bottom:15px}
+.v .t{display:flex;justify-content:space-between;align-items:baseline;font-size:14px}
+.v .t span{color:#9db4e6;font-size:12px}
+.v .t input{width:86px;background:#0a1a40;border:1px solid #35508f;border-radius:8px;color:#fff;padding:3px 8px;font:inherit;text-align:right}
+.v input[type=range]{width:100%;height:8px;border-radius:4px;appearance:none;margin:9px 0 0;cursor:pointer}
+.v input[type=range]::-webkit-slider-thumb{appearance:none;width:20px;height:20px;border-radius:50%;background:#fff;border:3px solid var(--blue)}
+.v input[type=range]::-moz-range-thumb{width:16px;height:16px;border-radius:50%;background:#fff;border:3px solid var(--blue)}
+.v .f{font-size:12px;color:#7f94c4;margin-top:4px}.v.on .f{color:var(--amber);font-weight:600}
+/* LECTURA */
+.gauge{width:100%;max-width:380px;display:block;margin:0 auto -6px}
+.arc{fill:none;stroke-width:18;stroke-linecap:round}
+#fill{transition:stroke-dashoffset .8s cubic-bezier(.2,.8,.2,1),stroke .3s}
+.pct{font:500 54px 'Newsreader',Georgia,serif;text-align:center;line-height:1}
+.cap{text-align:center;color:#9db4e6;font-size:13px;margin-bottom:16px}
+.seg{display:flex;gap:4px;margin:6px 0 4px}
+.seg i{flex:1;height:14px;border-radius:3px;background:#1b3877}
+.seg i:nth-child(2){margin-left:10px;position:relative}
+.seg i:nth-child(2)::before{content:'';position:absolute;left:-7px;top:-5px;bottom:-5px;border-left:2px dashed #fff}
+.seg i.on{background:var(--blue)}.seg.hi i.on{background:var(--coral)}
+.sl{display:flex;justify-content:space-between;font-size:12px;color:#9db4e6}
+.verdict{font:500 26px 'Newsreader',Georgia,serif;margin:18px 0 4px}
+.verdict.hi{color:#ff8e92}.verdict.lo{color:#6fe0c4}
+.why{color:#b4c4ea;font-size:14px;margin:0 0 14px}
+.mods{display:grid;gap:8px}
+.mods div{display:grid;grid-template-columns:130px 1fr 52px;gap:10px;align-items:center;font-size:13px;color:#cfdcff}
+.bar{height:8px;background:#1b3877;border-radius:4px;overflow:hidden}.bar i{display:block;height:100%;background:#8fb1ff;transition:width .6s}
+.mods div:last-child .bar i{background:var(--mint)}
+.warn{font-size:12px;color:#7f94c4;margin:16px 0 0}
+/* CAPÍTULOS */
+.rail{position:fixed;right:18px;top:50%;transform:translateY(-50%);display:flex;flex-direction:column;gap:14px;z-index:5}
+.rail a{width:11px;height:11px;border-radius:50%;background:#c3cde6;position:relative}
+.rail a.on{background:var(--blue);transform:scale(1.35)}
+.rail a span{position:absolute;right:20px;top:-6px;white-space:nowrap;font-size:12px;background:var(--ink);color:#fff;padding:2px 9px;border-radius:6px;opacity:0;pointer-events:none}
+.rail a:hover span,.rail a:focus-visible span{opacity:1}
+@media(max-width:1180px){.rail{display:none}}
+section.ch{padding:72px 0 8px}
+.ch h2{font-size:clamp(28px,4vw,42px);line-height:1.1;margin-bottom:10px}
+.ch .n{font:italic 500 18px 'Newsreader',Georgia,serif;color:var(--blue);display:block;margin-bottom:6px}
+.ch .lead{color:var(--mute);max-width:60ch;margin:0 0 26px}
+.tg{display:inline-flex;background:var(--ice);border-radius:999px;padding:4px;margin-bottom:18px}
+.tg button{border:0;background:none;padding:6px 16px;border-radius:999px;color:var(--mute)}
+.tg button.on{background:var(--ink);color:#fff}
+.dots{display:flex;flex-wrap:wrap;gap:5px;max-width:760px}
+.dots b{width:15px;height:15px;border-radius:50%;background:#9db4e6;transition:background .35s,opacity .25s,box-shadow .25s}
+.dots b.pos{background:var(--coral)}
+.dots.cm b.tp{background:var(--mint)}.dots.cm b.fn{background:var(--coral);box-shadow:0 0 0 3px #f8c5c7}
+.dots.cm b.fp{background:var(--amber)}.dots.cm b.tn{background:#9db4e6}
+.dots .dim{opacity:.12}
+.leg{display:flex;flex-wrap:wrap;gap:8px;margin:18px 0 6px}
+.leg button{border:1px solid var(--line);background:#fff;border-radius:10px;padding:8px 12px;text-align:left;font-size:13px;color:var(--mute)}
+.leg button strong{display:block;font:500 22px 'Newsreader',Georgia,serif;color:var(--ink)}
+.leg button.on{border-color:var(--ink)}
+.read2{max-width:62ch;color:#33476e;min-height:52px}
+.steps{display:grid;grid-template-columns:repeat(3,1fr);gap:0;counter-reset:s}
+@media(max-width:760px){.steps{grid-template-columns:1fr}}
+.steps div{padding:4px 22px 4px 0;border-top:3px solid var(--ink);counter-increment:s}
+.steps div::before{content:counter(s);display:block;font:italic 500 30px 'Newsreader',Georgia,serif;color:var(--blue);margin-top:8px}
+.steps h3{font-size:20px;margin:2px 0 6px}.steps p{margin:0;color:var(--mute);font-size:15px}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:34px;align-items:center}
+@media(max-width:860px){.two{grid-template-columns:1fr}}
+.m{display:grid;grid-template-columns:1fr auto;gap:2px 12px;padding:12px 0;border-bottom:1px solid var(--line);cursor:pointer}
+.m b{font:500 30px 'Newsreader',Georgia,serif;grid-row:span 2;align-self:center;color:var(--blue)}
+.m span{font-weight:600}.m small{color:var(--mute);display:none;grid-column:1}
+.m.on small{display:block}.m.on{background:linear-gradient(90deg,var(--ice),transparent)}
+svg text{font:12px 'Instrument Sans',sans-serif;fill:var(--mute)}
+.tabs{display:flex;gap:6px;margin-bottom:0}
+.tabs button{border:0;background:var(--ice);padding:9px 18px;border-radius:10px 10px 0 0;color:var(--mute)}
+.tabs button.on{background:var(--night);color:#fff}
+.code{background:var(--night);color:#dce7fb;border-radius:0 12px 12px 12px;padding:22px;position:relative}
+pre{margin:0;overflow-x:auto;font:13.5px/1.7 ui-monospace,Menlo,Consolas,monospace}
+.code p{color:#b4c4ea;font-size:14.5px;margin:16px 0 0;border-top:1px solid #1f3a78;padding-top:14px}
+.cp{position:absolute;right:14px;top:12px;background:#1b3877;border:0;color:#fff;border-radius:6px;padding:3px 10px;font-size:12px}
+/* PREDICCIÓN */
+.ind{display:grid;grid-template-columns:7fr 5fr;gap:22px;align-items:start}
+.pf fieldset{border:0;padding:0;margin:0 0 20px}
+.pf legend{font:500 17px 'Newsreader',Georgia,serif;color:var(--ink);padding:0;margin-bottom:10px}
+.fg.fg3{grid-template-columns:repeat(3,1fr)}
+@media(max-width:640px){.fg.fg3{grid-template-columns:1fr 1fr}}
+.mb{display:inline-block;font-size:10.5px;font-weight:600;color:var(--blue);background:var(--ice);border-radius:4px;padding:0 6px;vertical-align:1px}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{display:inline-flex;align-items:center;gap:7px;border:1px solid var(--line);border-radius:999px;padding:6px 12px;font-size:13px;background:var(--paper);cursor:pointer;color:var(--ink)}
+.chip input{accent-color:var(--coral);margin:0}
+.chip:has(input:checked){border-color:var(--coral);background:#fdeeee}
+.chip:has(input:focus-visible){outline:3px solid #8fb1ff;outline-offset:2px}
+.pmeta{font-size:13px;color:var(--mute);margin:2px 0 0}
+.whoc{font:500 21px 'Newsreader',Georgia,serif;margin-bottom:2px}
+.whoc.g{color:#c4373c}.whoc.a{color:#a85f00}.whoc.s{color:#1f8a72}
+#owhol{margin:4px 0 0;padding-left:18px;font-size:13px;color:#33476e}
+.calc{display:grid;grid-template-columns:auto 1fr;gap:5px 14px;margin:0;font-size:13px}
+.calc dt{color:var(--mute)}.calc dd{margin:0;color:var(--ink)}
+.trn{background:#fff;border:1px solid var(--line);border-left:4px solid var(--blue);border-radius:12px;padding:16px 18px;margin-bottom:18px}
+.trn h3{font-size:19px;margin-bottom:6px}
+.tsum{margin-top:12px}.tsum strong{color:var(--blue)}
+.tw td .nm{display:block;font-size:11.5px;color:var(--mute);font-weight:400}
+@media(min-width:861px){.res{position:sticky;top:16px;max-height:calc(100vh - 32px);overflow-y:auto}}
+@media print{.hero,.rail,#pm,#pv-lote,footer,section.ch:not(#pred),#pred>.n,#pred>h2,#pred>.lead,.btns,.sig,.pf>.mini{display:none!important}
+  body{background:#fff}.ind{grid-template-columns:1fr 1fr}.pf,.res{border:1px solid #ccc;position:static;max-height:none}section.ch{padding:0}}
+@media(max-width:860px){.ind{grid-template-columns:1fr}}
+.pf{background:#fff;border:1px solid var(--line);border-radius:18px;padding:22px}
+.pf h3,.lt h3{font-size:20px;margin-bottom:12px}
+.fg{display:grid;grid-template-columns:1fr 1fr;gap:12px 14px}
+@media(max-width:480px){.fg{grid-template-columns:1fr}}
+.fg label{font-size:13px;color:var(--mute);display:flex;flex-direction:column;gap:4px}
+.fg input,.fg select{font:inherit;font-size:15px;color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:7px 10px;background:var(--paper);width:100%}
+.fg input[aria-invalid=true]{border-color:var(--coral);background:#fff5f5}
+.fg small{font-size:11.5px}
+.btns{display:flex;gap:8px;flex-wrap:wrap;margin-top:16px;align-items:center}
+.btn{border:0;background:var(--ink);color:#fff;border-radius:10px;padding:9px 16px;font-weight:600;font-size:14px}
+.btn:hover{background:var(--blue)}
+.btn.gh{background:transparent;border:1px solid var(--line);color:var(--ink);font-weight:500}
+.btn.gh:hover{background:var(--ice)}
+.mini{font-size:12px;color:var(--mute);margin:0}
+.res{border-radius:18px;padding:24px;background:var(--ice)}
+.res.hi{background:#fdeeee}.res.lo{background:#e6f6f1}
+.res .empty{color:var(--mute);margin:0}
+.rh{display:flex;justify-content:space-between;align-items:center;gap:10px;font-weight:600}
+.big{font:500 58px/1 'Newsreader',Georgia,serif;margin-top:18px}
+.bcap{font-size:13px;color:var(--mute);margin-bottom:16px}
+.kv{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
+.kv div{background:rgba(255,255,255,.7);border-radius:10px;padding:10px 12px;font-size:13px;color:var(--mute)}
+.kv b{display:block;font:500 24px 'Newsreader',Georgia,serif;color:var(--ink)}
+.fx{font-size:14px;color:#33476e;margin:8px 0 0}
+.res ul{margin:8px 0 0;padding-left:18px;color:#8a1f24;font-size:14px}
+.tag{display:inline-block;padding:2px 10px;border-radius:999px;font-size:12px;font-weight:600;white-space:nowrap}
+.tag.hi{background:#fbd9da;color:#a8232a}.tag.lo{background:#cdeee4;color:#16705c}.tag.err{background:#e7e9ef;color:#4c5670}
+.lt{background:#fff;border:1px solid var(--line);border-radius:18px;padding:22px}
+.lt textarea{width:100%;min-height:150px;font:13px/1.6 ui-monospace,Menlo,Consolas,monospace;color:var(--ink);background:var(--paper);border:1px solid var(--line);border-radius:10px;padding:12px;resize:vertical}
+.lt textarea.drag{border-color:var(--blue);background:var(--ice)}
+.file{position:relative;overflow:hidden}
+.file input{position:absolute;inset:0;opacity:0;cursor:pointer}
+#lmsg{margin:12px 0 0;font-size:14px;color:var(--mute)}#lmsg.bad{color:#a8232a}
+#lres{margin-top:26px}
+.sum{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+@media(max-width:640px){.sum{grid-template-columns:1fr 1fr}}
+.sum div{border:1px solid var(--line);background:#fff;border-radius:12px;padding:12px 14px;font-size:13px;color:var(--mute)}
+.sum strong{display:block;font:500 28px 'Newsreader',Georgia,serif;color:var(--ink)}
+.sum .h strong{color:#c4373c}.sum .l strong{color:#1f8a72}
+.dist{display:flex;height:12px;border-radius:6px;overflow:hidden;margin:14px 0 18px;background:var(--line)}
+.dist i{display:block}.dist i:first-child{background:var(--coral)}.dist i:last-child{background:var(--mint)}
+.tools{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.tools .tg{margin:0;max-width:100%;overflow-x:auto}
+#lf button{white-space:nowrap}
+@media(max-width:480px){#lf button{padding:6px 11px;font-size:13px}}
+.tools select{font:inherit;font-size:14px;border:1px solid var(--line);border-radius:8px;padding:6px 10px;background:#fff;color:var(--ink)}
+.tw{overflow:auto;max-height:480px;border:1px solid var(--line);border-radius:12px;background:#fff}
+.tw table{border-collapse:collapse;width:100%;font-size:13.5px;font-variant-numeric:tabular-nums}
+.tw th,.tw td{padding:8px 12px;text-align:right;white-space:nowrap;border-bottom:1px solid var(--line)}
+.tw th{position:sticky;top:0;background:var(--paper);color:var(--mute);font-weight:600;font-size:12.5px}
+.tw th:first-child,.tw td:first-child{text-align:left}
+.tw td.x{color:#a85f00;font-weight:600}
+.tw tr.e td{color:#8b93a7}
+.tw td small{display:block;color:#a8232a;font-size:11.5px;white-space:normal;min-width:170px;text-align:left}
+/* Gráfica del lote */
+.crit{display:flex;flex-wrap:wrap;gap:12px 22px;align-items:center;background:#fff;border:1px solid var(--line);border-radius:12px;padding:12px 16px;margin-bottom:14px;font-size:14px;color:var(--mute)}
+.crit label{display:flex;align-items:center;gap:8px}
+.crit select{font:inherit;font-size:14px;border:1px solid var(--line);border-radius:8px;padding:6px 10px;background:#fff;color:var(--ink)}
+.crit input[type=range]{width:170px;accent-color:var(--coral);cursor:pointer}
+.crit b{color:var(--ink);min-width:46px;display:inline-block;font-variant-numeric:tabular-nums}
+.cg{display:grid;grid-template-columns:2fr 1fr;gap:18px;margin-bottom:18px;align-items:start}
+@media(max-width:860px){.cg{grid-template-columns:1fr}}
+.chart{background:#fff;border:1px solid var(--line);border-radius:12px;padding:0 14px 14px;max-height:470px;overflow-y:auto;--lab:84px;--val:60px}
+.ax{display:grid;grid-template-columns:var(--lab) 1fr var(--val);font-size:11px;color:var(--mute);position:sticky;top:0;background:#fff;z-index:3;padding:10px 0 8px;border-bottom:1px solid var(--line);margin-bottom:6px}
+.ax div{position:relative;height:14px}
+.ax span{position:absolute;transform:translateX(-50%);white-space:nowrap}
+.ax span:first-child{transform:none}.ax span:last-child{transform:translateX(-100%)}
+.ci{position:relative;transition:height .4s}
+.th{position:absolute;top:-6px;bottom:0;width:0;border-left:2px dashed var(--ink);left:calc(var(--lab) + (100% - var(--lab) - var(--val)) * var(--c,0));transition:left .35s cubic-bezier(.2,.8,.2,1);z-index:2;pointer-events:none}
+.th span{position:absolute;bottom:-2px;left:5px;font-size:11px;background:var(--ink);color:#fff;border-radius:4px;padding:0 6px;white-space:nowrap}
+.cr{position:absolute;left:0;right:0;height:26px;display:grid;grid-template-columns:var(--lab) 1fr var(--val);align-items:center;border:0;background:none;padding:0;text-align:left;border-radius:6px;transition:top .55s cubic-bezier(.2,.8,.2,1),opacity .3s;font-size:12.5px;color:var(--ink)}
+.cr:hover,.cr.sel{background:var(--ice)}.cr.sel .cl{font-weight:600}
+.cl{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding-left:6px}
+.ct{position:relative;height:12px;background:#eef2fa;border-radius:3px}
+.cb{position:absolute;left:0;top:0;bottom:0;border-radius:3px;background:var(--mint);transition:width .55s cubic-bezier(.2,.8,.2,1),background .3s}
+.cr.hi .cb{background:var(--coral)}
+.cd{position:absolute;top:50%;width:9px;height:9px;margin:-4.5px 0 0 -4.5px;border-radius:50%;background:#fff;border:2px solid var(--ink);transition:left .55s cubic-bezier(.2,.8,.2,1)}
+.cv{text-align:right;font-variant-numeric:tabular-nums;padding-right:6px}
+.cr.e .cl{color:#8b93a7}.cr.e .cv{color:#a8232a;font-size:11.5px}
+.cr.out{opacity:0;pointer-events:none;visibility:hidden;transition:opacity .3s,visibility 0s .3s}
+@media(max-width:480px){.chart{--lab:62px;--val:52px;padding:0 8px 10px}.ax span:nth-child(2n){display:none}}
+.cempty{color:var(--mute);font-size:14px;padding:12px 6px;margin:0}
+.leg2{font-size:12px;color:var(--mute);margin:10px 0 0;display:flex;gap:16px;flex-wrap:wrap}
+.leg2 i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:5px;vertical-align:-1px}
+.ed{background:#fff;border:1px solid var(--line);border-radius:12px;padding:16px;position:sticky;top:16px}
+.ed .empty{color:var(--mute);font-size:14px;margin:0}
+.eh{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:4px}
+.eh h4{font:500 22px 'Newsreader',Georgia,serif;margin:0}
+.ek{font-size:13px;color:var(--mute);margin-bottom:12px}.ek b{color:var(--ink)}
+.ek ul{margin:4px 0 0;padding-left:16px;color:#a8232a}
+.etg{width:100%;display:flex;justify-content:space-between;align-items:center;border:1px solid var(--line);background:var(--paper);border-radius:8px;padding:7px 10px;font-size:13px;margin-bottom:10px;color:var(--ink)}
+.etg[aria-pressed=true]{border-color:var(--coral);background:#fdeeee}
+.ef{margin-bottom:10px}
+.ef .t{display:flex;justify-content:space-between;align-items:center;font-size:13px;gap:8px}
+.ef .t span{display:block;font-size:11px;color:var(--mute)}
+.ef.on .t span{color:#a85f00;font-weight:600}
+.ef input[type=number]{width:100px;font:inherit;font-size:13px;color:var(--ink);border:1px solid var(--line);border-radius:6px;padding:3px 7px;text-align:right;background:var(--paper)}
+.ef input[type=range]{width:100%;accent-color:var(--blue);margin:5px 0 0;cursor:pointer}
+.tw tbody tr{cursor:pointer}.tw tbody tr:hover td{background:var(--paper)}.tw tr.sel td{background:var(--ice)}
+/* Gráfica individual */
+.ctb{margin:14px 0 4px;background:rgba(255,255,255,.72);border-radius:12px;padding:12px 14px}
+.ctb h4{font-size:13px;font-weight:600;margin:0 0 8px;color:var(--ink)}
+.cn{display:grid;grid-template-columns:92px 1fr 50px;gap:8px;align-items:center;font-size:12.5px;color:var(--mute);margin-bottom:5px}
+.tk{height:10px;background:#e3e9f5;border-radius:3px;position:relative;overflow:hidden}
+.tk i{position:absolute;left:0;top:0;bottom:0;border-radius:3px;background:var(--coral);transition:width .5s cubic-bezier(.2,.8,.2,1)}
+.cn.neg .tk i{background:var(--blue)}
+.cn.off{opacity:.5}
+.cn b{text-align:right;color:var(--ink);font-weight:600;font-variant-numeric:tabular-nums}
+.lgt{font-size:13px;color:var(--ink);margin-top:8px}
+.sig{width:100%;display:block;margin-top:6px}
+.sig .dot{transition:transform .55s cubic-bezier(.2,.8,.2,1)}
+footer{padding:64px 0 36px;color:var(--mute);font-size:13px}
+@media(prefers-reduced-motion:reduce){*{transition:none!important;scroll-behavior:auto!important}}
+</style>
+</head>
+<body>
+<header class="hero"><div class="wrap">
+  <div class="brand"><span>DenguePredict</span><span>Proyecto de Analítica de Datos · dengue pediátrico</span></div>
+  <h1>¿Se complicará este <i>dengue</i>?</h1>
+  <p class="sub">Un niño llega con fiebre. Con los datos de su ficha clínica, un score, una regresión logística y una red neuronal estiman el riesgo de que evolucione a dengue severo.</p>
+</div></header>
+
+<nav class="rail" aria-label="Capítulos"><a href="#pred"><span>Predecir</span></a><a href="#c1"><span>La cohorte</span></a><a href="#c2"><span>La limpieza</span></a><a href="#c3"><span>El juicio</span></a><a href="#c4"><span>El código</span></a></nav>
+
+<main class="wrap">
+<section class="ch" id="pred"><span class="n">Capítulo 1</span><h2>Predecir: un paciente o un lote</h2>
+  <p class="lead">Llena la ficha clínica de un paciente o carga una lista de pacientes en CSV o Excel. Los dos modos usan los mismos modelos: score, regresión logística y red neuronal.</p>
+  <p class="mini" id="msrc" style="margin:-14px 0 20px"></p>
+  <div class="tg" id="pm"><button class="on" data-v="ind">Calculadora individual</button><button data-v="lote">Por lote</button></div>
+
+  <div id="pv-ind">
+    <div class="ind">
+      <div class="pf">
+        <h3>Ficha clínica del paciente</h3>
+        <p class="mini" style="margin-bottom:16px">Los campos marcados con <span class="mb">modelo</span> alimentan la probabilidad. El resto se usa para la clasificación clínica y los valores calculados. Nada sale de tu navegador.</p>
+        <fieldset><legend>Identificación</legend><div class="fg fg3" id="f-id"></div></fieldset>
+        <fieldset><legend>Signos vitales</legend><div class="fg fg3" id="f-vit"></div>
+          <div class="fg" style="margin-top:12px"><label><span>Hipotensión arterial <span class="mb">modelo</span></span><select id="i-h"><option value="auto">Calcular con presión sistólica y edad</option><option value="1">Sí (+3 pts)</option><option value="0">No</option></select><small id="hipc">Se calcula sola cuando hay edad y presión sistólica.</small></label></div>
+        </fieldset>
+        <fieldset><legend>Signos de alarma (OMS 2009)</legend><div class="chips" id="f-alarm"></div></fieldset>
+        <fieldset><legend>Otros síntomas y signos</legend><div class="chips" id="f-sint"></div></fieldset>
+        <fieldset><legend>Laboratorio</legend><div class="fg fg3" id="f-lab"></div></fieldset>
+        <div class="btns"><button class="btn" id="ipred">Calcular</button><button class="btn gh" data-pre="0">Ejemplo estable</button><button class="btn gh" data-pre="1">Ejemplo límite</button><button class="btn gh" data-pre="2">Ejemplo crítico</button><button class="btn gh" id="iclr">Limpiar ficha</button></div>
+      </div>
+      <div class="res" id="ires">
+        <p class="empty" id="iempty">Completa al menos las cuatro variables de laboratorio marcadas como modelo y la hipotensión (o edad y presión sistólica). El resultado se recalcula solo cada vez que cambias un dato.</p>
+        <div id="ierr" hidden></div>
+        <div id="iout" hidden>
+          <div class="rh"><span id="oid"></span><span class="tag" id="otag" aria-live="polite"></span></div>
+          <p class="pmeta" id="ometa"></p>
+          <div class="big" id="opl"></div><div class="bcap">probabilidad de complicación según la regresión logística</div>
+          <div class="kv"><div>Score<b id="osc"></b></div><div>Red neuronal<b id="opa"></b></div></div>
+          <div class="ctb"><h4>Clasificación clínica (OMS 2009)</h4><div class="whoc" id="owho"></div><ul id="owhol"></ul></div>
+          <div class="ctb"><h4>Valores calculados</h4><dl class="calc" id="ocalc"></dl></div>
+          <div class="ctb"><h4>Cómo se arma la probabilidad</h4><div id="ocon"></div>
+            <svg class="sig" viewBox="0 0 410 112" role="img" aria-label="Curva sigmoide con la posición de este paciente"><line x1="20" y1="92" x2="390" y2="92" stroke="#c5cfe6"/><line x1="205" y1="6" x2="205" y2="92" stroke="#c5cfe6" stroke-dasharray="3 4"/><path id="sgp" fill="none" stroke="#2b5fd9" stroke-width="2.5"/><text x="20" y="108">logit −5</text><text x="201" y="108">0</text><text x="374" y="108">+5</text><text x="210" y="16">probabilidad</text><g class="dot" id="sgd"><circle r="6" fill="#e5484d" stroke="#fff" stroke-width="2"/></g></svg>
+            <div class="lgt" id="olg"></div></div>
+          <p class="fx" id="ofx"></p><p class="fx" id="oact"></p>
+          <div class="btns"><button class="btn gh" id="iadd">Añadir al lote</button><button class="btn gh" id="iprint">Imprimir ficha</button><span class="mini" id="iaddm"></span></div>
+          <p class="mini" id="ocomp" style="margin-top:12px"></p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="pv-lote" hidden>
+    <div class="lt">
+      <h3>Lista de pacientes</h3>
+      <p class="mini" style="margin-bottom:10px">Una fila por paciente con las columnas <b>id; hipotension; plaquetas; hematocrito; alt; leucocitos</b>. Puedes añadir también <b>nombre; historia; edad</b>. También acepta archivos de Excel con el formato MASTER CHART del estudio. Si el archivo trae el desenlace (columna <b>complicado</b> o GROUPS), el modelo se entrena con esos pacientes. Acepta separador «;», «,» o tabulador (puedes pegar directamente desde Excel). Hipotensión admite 1/0 o sí/no.</p>
+      <textarea id="csv" spellcheck="false" placeholder="id;hipotension;plaquetas;hematocrito;alt;leucocitos&#10;P-001;0;180000;38;35;5500&#10;P-002;1;40000;46;120;9000" aria-label="Datos del lote en CSV"></textarea>
+      <div class="btns">
+        <button class="btn" id="lcalc">Calcular lote</button>
+        <span class="btn gh file">Subir CSV o Excel<input type="file" id="lfile" accept=".csv,.txt,.xlsx,.xlsm,.xls,.ods,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel" aria-label="Subir archivo CSV o Excel"></span>
+        <button class="btn gh" id="lex">Cargar ejemplo</button>
+        <button class="btn gh" id="ltpl">Descargar plantilla</button>
+        <button class="btn gh" id="lclr">Vaciar</button>
+      </div>
+      <p id="lmsg" aria-live="polite"></p>
+    </div>
+    <div id="lres" hidden>
+      <div class="trn" id="ltrain" hidden></div>
+      <div class="sum" id="lsum"></div>
+      <div class="dist" id="ldist"></div>
+      <div class="crit">
+        <label>Clasificar por <select id="cm"><option value="sc">Score (0 a 7)</option><option value="pl">Probabilidad logística</option><option value="pa">Probabilidad red neuronal</option></select></label>
+        <label>Alto riesgo si es ≥ <b id="cv">2</b><input type="range" id="cr" min="1" max="7" step="1" value="2" aria-label="Corte de alto riesgo"></label>
+        <button class="btn gh" id="creset">Volver al corte del modelo (score ≥ 2)</button>
+      </div>
+      <div class="tools">
+        <div class="tg" id="lf"></div>
+        <div class="btns" style="margin:0"><select id="lsort" aria-label="Ordenar"><option value="o">Orden del archivo</option><option value="p">Mayor prob. logística primero</option><option value="a">Mayor prob. red primero</option><option value="s">Mayor score primero</option></select><button class="btn" id="ldl">Descargar resultados</button></div>
+      </div>
+      <div class="cg">
+        <div><div class="chart" id="chart"><div class="ax"><div></div><div id="axt"></div><div></div></div><div class="ci" id="ci"><div class="th" id="th"></div></div><p class="cempty" id="cempty" hidden>No hay pacientes en esta categoría.</p></div>
+          <p class="leg2"><span><i style="background:var(--coral)"></i>Alto riesgo</span><span><i style="background:var(--mint)"></i>Riesgo bajo</span><span id="lgdot"><i style="border:2px solid var(--ink);border-radius:50%;background:#fff"></i>El otro modelo, para comparar</span><span>La línea discontinua es el corte</span></p></div>
+        <aside class="ed" id="ed"></aside>
+      </div>
+      <div class="tw"><table><thead id="lth"></thead><tbody id="ltb"></tbody></table></div>
+      <p class="mini" style="margin-top:10px">Los valores en ámbar cruzan su corte y suman un punto al score.</p>
+    </div>
+  </div>
+</section>
+<section class="ch" id="c1"><span class="n">Capítulo 2</span><h2 id="c1h">303 niños, 63 complicaciones</h2>
+  <p class="lead">Cada punto es un paciente. Cambia de vista para comparar lo que ocurrió con lo que el modelo anticipó, y toca una categoría para aislarla.</p>
+  <p class="mini" id="c1src" style="margin:-14px 0 20px"></p>
+  <div class="tg"><button class="on" data-m="real">Lo que ocurrió</button><button data-m="cm">Lo que predijo el modelo</button></div>
+  <div class="dots" id="dots"></div>
+  <div class="leg" id="leg"></div>
+  <p class="read2" id="dtxt"></p>
+</section>
+
+<section class="ch" id="c2"><span class="n">Capítulo 3</span><h2>Preparar los datos</h2>
+  <p class="lead">Antes de modelar hubo que dejar la información en un formato que los algoritmos pudieran usar.</p>
+  <div class="steps">
+    <div><h3>Quitar constantes</h3><p>Si todos los pacientes tienen el mismo valor en una columna, esta no distingue a nadie. Se eliminaron para evitar ruido y sobreajuste.</p></div>
+    <div><h3>Codificar en 0 y 1</h3><p>Las variables cualitativas pasaron a números: 1 si el dato está presente, 0 si no.</p></div>
+    <div><h3>Fijar cortes con ROC</h3><p>Para cada valor de laboratorio se buscó el límite que maximiza el índice de Youden y se marcó si el paciente lo cruza.</p></div>
+  </div>
+</section>
+
+<section class="ch" id="c3"><span class="n">Capítulo 4</span><h2>El juicio de los modelos</h2>
+  <p class="lead">Toca una medida para ver qué significa en la práctica. Todo se calcula con los pacientes que entrenan el modelo.</p>
+  <p class="mini" id="c3src" style="margin:-14px 0 20px"></p>
+  <div class="two">
+    <div id="mets"></div>
+    <svg viewBox="0 0 300 300" role="img" id="rocsvg" aria-label="Curva ROC"><g id="roc"></g></svg>
+  </div>
+</section>
+
+<section class="ch" id="c4"><span class="n">Capítulo 5</span><h2>Bajo el capó</h2>
+  <p class="lead">Estas son las piezas que producen las predicciones y cómo se entrenan.</p>
+  <div class="tabs" role="tablist"><button class="on" data-c="0">Score</button><button data-c="1">Regresión logística</button><button data-c="2">Red neuronal</button><button data-c="3">Lote</button><button data-c="4">Entrenamiento</button></div>
+  <div class="code"><button class="cp">Copiar</button><pre id="code"></pre><p id="expl"></p></div>
+</section>
+<footer>Proyecto académico de Analítica de Datos. La regresión logística y la red neuronal se entrenan con los datos del estudio (MASTER_CHART_F1000Research.xlsx) o con el archivo que subas con desenlace. El modelo entrenado se guarda en este navegador.</footer>
+</main>
+
+<script>
+const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
+const V=[{vmin:0,vmax:2000000,k:'plat',n:'Plaquetas',u:'cel/cumm',min:0,max:300000,st:1000,cut:75000,lo:1,d:64972,f:'Corte ≤ 75.000'},
+{vmin:5,vmax:80,k:'pcv',n:'Hematocrito',u:'%',min:20,max:60,st:.1,cut:42,lo:0,d:43.5,f:'Corte ≥ 42 % (hemoconcentración)'},
+{vmin:0,vmax:10000,k:'alt',n:'ALT',u:'U/L',min:0,max:500,st:1,cut:70,lo:0,d:85,f:'Corte ≥ 70 U/L'},
+{vmin:0,vmax:200000,k:'wbc',n:'Leucocitos',u:'cel/cumm',min:0,max:20000,st:100,cut:7000,lo:0,d:8200,f:'Corte ≥ 7.000'}];
+const PRE=[{h:0,plat:180000,pcv:38,alt:35,wbc:5500},{h:0,plat:70000,pcv:44,alt:40,wbc:5000},{h:1,plat:40000,pcv:46,alt:120,wbc:9000}];
+
+/* ===== Entrenamiento: regresión logística (IRLS) y red 5-4-1 (Adam) ===== */
+const FEAT=['h','wbc','alt','plat','pcv'],B64='ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_';
+const codificar=D=>D.map(d=>B64[d.x.reduce((a,v,i)=>a|(v<<i),0)|(d.y<<5)]).join('');
+const decodificar=s=>[...s].map(c=>{const v=B64.indexOf(c);return {x:FEAT.map((_,i)=>(v>>i)&1),y:(v>>5)&1}});
+const sig=z=>1/(1+Math.exp(-z));
+function resolver(A,b){const n=b.length,M=A.map((r,i)=>[...r,b[i]]);
+  for(let c=0;c<n;c++){let p=c;for(let r=c+1;r<n;r++)if(Math.abs(M[r][c])>Math.abs(M[p][c]))p=r;[M[c],M[p]]=[M[p],M[c]];
+    for(let r=0;r<n;r++)if(r!==c){const f=M[r][c]/M[c][c];for(let k=c;k<=n;k++)M[r][k]-=f*M[c][k]}}
+  return M.map((r,i)=>r[n]/r[i])}
+function entrenarLogistica(D,lam=.01){
+  let b=[0,0,0,0,0,0];
+  for(let it=0;it<100;it++){
+    const H=b.map(()=>b.map(()=>0)),g=b.map(()=>0);
+    agrupar(D).forEach(d=>{const x=[1,...d.x],p=sig(x.reduce((a,v,i)=>a+v*b[i],0)),w=p*(1-p)*d.w;
+      for(let i=0;i<6;i++){g[i]+=x[i]*(d.y-p)*d.w;for(let j=0;j<6;j++)H[i][j]+=w*x[i]*x[j]}});
+    for(let i=1;i<6;i++){g[i]-=lam*b[i];H[i][i]+=lam}H[0][0]+=1e-9;
+    const s=resolver(H,g);b=b.map((v,i)=>v+s[i]);if(Math.max(...s.map(Math.abs))<1e-9)break}
+  return b}
+function rng(a){return()=>{a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+function redAdelante(N,x){const h=N.W1.map((w,j)=>Math.max(0,N.b1[j]+w.reduce((a,v,k)=>a+v*x[k],0)));
+  return {h,p:sig(N.b2+h.reduce((a,v,j)=>a+v*N.W2[j],0))}}
+function agrupar(D){const m=new Map();D.forEach(d=>{const k=d.x.join('')+d.y;const g=m.get(k);if(g)g.w++;else m.set(k,{x:d.x,y:d.y,w:1})});return [...m.values()]}
+function entrenarRed(D,{oc=4,ep=3000,lr=.03,l2=1e-3,semilla=7}={}){
+  const R=rng(semilla),n=D.length,G0=agrupar(D);
+  const N={W1:[...Array(oc)].map(()=>FEAT.map(()=>(R()*2-1)*.8)),b1:Array(oc).fill(.1),W2:[...Array(oc)].map(()=>(R()*2-1)*.8),b2:0};
+  const np=oc*FEAT.length+oc+oc+1,m=new Float64Array(np),v=new Float64Array(np);
+  for(let e=1;e<=ep;e++){
+    const g=new Float64Array(np);
+    G0.forEach(d=>{const {h,p}=redAdelante(N,d.x),dz=(p-d.y)*d.w/n;g[np-1]+=dz;
+      h.forEach((hj,j)=>{g[oc*FEAT.length+oc+j]+=dz*hj;if(hj>0){const dp=dz*N.W2[j];g[oc*FEAT.length+j]+=dp;d.x.forEach((xk,k)=>{if(xk)g[j*FEAT.length+k]+=dp})}})});
+    let i=0;const paso=(val,gi,reg)=>{const gr=gi+(reg?l2*val:0);m[i]=.9*m[i]+.1*gr;v[i]=.999*v[i]+.001*gr*gr;
+      const r=val-lr*(m[i]/(1-.9**e))/(Math.sqrt(v[i]/(1-.999**e))+1e-8);i++;return r};
+    N.W1=N.W1.map(r=>r.map(w=>paso(w,g[i],1)));N.b1=N.b1.map(b=>paso(b,g[i],0));N.W2=N.W2.map(w=>paso(w,g[i],1));N.b2=paso(N.b2,g[i],0)}
+  return N}
+function auc(s,y){let a=0,np=0,nn=0;s.forEach((si,i)=>{if(y[i])np++;else nn++});
+  s.forEach((si,i)=>{if(!y[i])return;s.forEach((sj,j)=>{if(y[j])return;a+=si>sj?1:si===sj?.5:0})});return np&&nn?a/(np*nn):NaN}
+function curvaROC(s,y){const P=y.filter(v=>v).length,N=y.length-P,th=[...new Set(s)].sort((a,b)=>b-a),pts=[[0,0]];
+  th.forEach(t=>{let tp=0,fp=0;s.forEach((v,i)=>{if(v>=t){if(y[i])tp++;else fp++}});pts.push([fp/N,tp/P])});return pts}
+function evaluar(D,M){
+  const y=D.map(d=>d.y),sc=D.map(d=>d.x[0]*3+d.x[1]+d.x[2]+d.x[3]+d.x[4]);
+  const pl=D.map(d=>sig(M.lr[0]+d.x.reduce((a,v,i)=>a+v*M.lr[i+1],0))),pa=D.map(d=>redAdelante(M.nn,d.x).p);
+  let tp=0,fn=0,fp=0,tn=0;D.forEach((d,i)=>{const a=sc[i]>=2;if(d.y){a?tp++:fn++}else{a?fp++:tn++}});
+  return {n:D.length,npos:tp+fn,tp,fn,fp,tn,sens:tp/(tp+fn),spec:tn/(tn+fp),vpn:tn/(tn+fn),vpp:tp/(tp+fp),
+    aucL:auc(pl,y),aucR:auc(pa,y),aucS:auc(sc,y),roc:curvaROC(pl,y)}}
+function entrenarTodo(D){return {lr:entrenarLogistica(D),nn:entrenarRed(D)}}
+
+/* Modelo base: entrenado con MASTER_CHART_F1000Research.xlsx (302 pacientes con datos completos; una fila sin ALT queda fuera) */
+const BASE_ENC='5oAcClAIaAAAXAgpAQtCK6CAtAAKA1AcMIIBQEACJuA-g_YuAAIMKAEIKKUwAAzgAtAAAAKIQA54QYCiEA8EA8-B_AAJAAUQADICIAYzvOrhCA_pCAACQYOICiEAAIYOKQjIC5QQAmGAIsimICCYEqA9aIOMEA_tB9GCYAYAtISIEAABAIAMUAUAIIKKYMCC8AYYcQIAIKcSQqCCso8ESQAQCQQAAAQAAQAmY6IIcAAI6CKAAAYmIACAYAAAAM0AIABgAM9AQASAA4QCAQ4AYUAU4AAAAIQAIACIACMAAIrt_t';
+const MODELO_BASE={"lr":[-3.6373,2.99,1.3597,1.3993,1.1063,0.9961],"nn":{"W1":[[-1.2157,-0.5175,-1.0842,-0.5753,-0.9515],[0,0,0,0,0],[-1.1321,-0.2911,0.4041,0.8199,-0.1485],[-0.3638,-0.3395,0.3559,-1.0477,1.2058]],"b1":[3.1262,-0.267,-0.0893,0.0022],"W2":[-2.0301,0,-1.4878,-1.6994],"b2":3.1548}};
+const TRAIN_BASE={D:decodificar(BASE_ENC),enc:BASE_ENC,fuente:'MASTER_CHART_F1000Research.xlsx',nota:'Una fila sin ALT quedó fuera del entrenamiento.',base:true};
+let MODEL=MODELO_BASE,TRAIN=TRAIN_BASE;
+const CLAVE='denguepredict-modelo-v1';
+function guardarModelo(){try{localStorage.setItem(CLAVE,JSON.stringify({MODEL,enc:TRAIN.enc,fuente:TRAIN.fuente,fecha:TRAIN.fecha,nota:TRAIN.nota}))}catch(e){}}
+try{const g=JSON.parse(localStorage.getItem(CLAVE)||'null');if(g&&g.MODEL&&g.enc){MODEL=g.MODEL;TRAIN={D:decodificar(g.enc),enc:g.enc,fuente:g.fuente,fecha:g.fecha,nota:g.nota}}}catch(e){}
+
+/* Modelos compartidos: una sola función para la ficha, la predicción individual y el lote */
+function predecir(r){
+  const f={};V.forEach(v=>f[v.k]=+(v.lo?r[v.k]<=v.cut:r[v.k]>=v.cut));
+  const h=r.h?1:0;
+  const sc=h*3+f.plat+f.pcv+f.alt+f.wbc,hi=sc>=2;
+  const x=[h,f.wbc,f.alt,f.plat,f.pcv];
+  const lg=MODEL.lr[0]+x.reduce((a,v,i)=>a+v*MODEL.lr[i+1],0),pl=sig(lg);
+  const pa=redAdelante(MODEL.nn,x).p;
+  return {f,sc,hi,lg,pl,pa};
+}
+const pc=p=>(p*100).toFixed(1).replace('.',',')+' %';
+const fmt=n=>Number(n).toLocaleString('es-CO');
+const low=n=>/^[A-Z]+$/.test(n)?n:n.toLowerCase();
+const esc=t=>String(t).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+
+/* ===== Predicción: selector de modo ===== */
+$$('#pm button').forEach(b=>b.onclick=()=>{$$('#pm button').forEach(x=>x.classList.toggle('on',x==b));
+  $('#pv-ind').hidden=b.dataset.v!='ind';$('#pv-lote').hidden=b.dataset.v!='lote'});
+const verLote=()=>$('#pm button[data-v=lote]').click();
+
+/* ===== Calculadora individual ===== */
+/* Variables de la ficha. Solo plaquetas, hematocrito, ALT, leucocitos e hipotensión entran al modelo. */
+const F_ID=[{k:'nom',n:'Nombre completo',t:'text'},{k:'hc',n:'Historia clínica',t:'text'},{k:'edad',n:'Edad (años)',min:0,max:17,st:1},
+  {k:'sexo',n:'Sexo',t:'sel',o:['','Femenino','Masculino']},{k:'peso',n:'Peso (kg)',min:1,max:150,st:.1},{k:'dias',n:'Días de fiebre',min:0,max:30,st:1}];
+const F_VIT=[{k:'temp',n:'Temperatura (°C)',min:34,max:43,st:.1},{k:'fc',n:'Frec. cardíaca (lpm)',min:30,max:250,st:1},{k:'fr',n:'Frec. respiratoria (rpm)',min:8,max:100,st:1},
+  {k:'pas',n:'Presión sistólica (mmHg)',min:30,max:200,st:1},{k:'pad',n:'Presión diastólica (mmHg)',min:15,max:150,st:1},{k:'llc',n:'Llenado capilar (s)',min:0,max:10,st:.5}];
+const F_ALARM=[['dab','Dolor abdominal intenso'],['vom','Vómito persistente'],['sang','Sangrado de mucosas'],['let','Letargia o irritabilidad'],
+  ['hep','Hepatomegalia > 2 cm'],['liq','Acumulación de líquidos'],['hto','Aumento del hematocrito con caída rápida de plaquetas']];
+const F_SINT=[['pet','Petequias'],['tor','Prueba del torniquete positiva'],['eru','Erupción cutánea'],['cef','Cefalea'],['ret','Dolor retroocular'],['mia','Mialgias o artralgias']];
+const F_LAB=[{k:'ast',n:'AST (U/L)',min:0,max:20000,st:1},{k:'hb',n:'Hemoglobina (g/dL)',min:2,max:25,st:.1},{k:'alb',n:'Albúmina (g/dL)',min:.5,max:7,st:.1},
+  {k:'ns1',n:'NS1',t:'sel',o:['','Positivo','Negativo']},{k:'igm',n:'IgM dengue',t:'sel',o:['','Positivo','Negativo']}];
+const TOTAL_VARS=F_ID.length+F_VIT.length+1+F_ALARM.length+F_SINT.length+V.length+F_LAB.length;
+
+const campo=f=>f.t=='text'?`<label>${f.n}<input type="text" id="c-${f.k}" autocomplete="off"></label>`
+  :f.t=='sel'?`<label>${f.n}<select id="c-${f.k}">${f.o.map(o=>`<option value="${o}">${o||'Sin dato'}</option>`).join('')}</select></label>`
+  :`<label>${f.n}<input type="number" id="c-${f.k}" min="${f.min}" max="${f.max}" step="${f.st}" inputmode="decimal"></label>`;
+$('#f-id').innerHTML=F_ID.map(campo).join('');
+$('#f-vit').innerHTML=F_VIT.map(campo).join('');
+$('#f-alarm').innerHTML=F_ALARM.map(([k,n])=>`<label class="chip"><input type="checkbox" id="c-${k}">${n}</label>`).join('');
+$('#f-sint').innerHTML=F_SINT.map(([k,n])=>`<label class="chip"><input type="checkbox" id="c-${k}">${n}</label>`).join('');
+$('#f-lab').innerHTML=V.map(v=>`<label><span>${v.n} (${v.u}) <span class="mb">modelo</span></span><input type="number" id="i-${v.k}" step="${v.st}" min="${v.vmin}" max="${v.vmax}" inputmode="decimal"><small>${v.f}</small></label>`).join('')+F_LAB.map(campo).join('');
+
+let ultimo=null;
+const TERMS=[['Intercepto',0,null],['Hipotensión',1,'h'],['Leucocitos',2,'wbc'],['ALT',3,'alt'],['Plaquetas',4,'plat'],['Hematocrito',5,'pcv']];
+$('#ocon').innerHTML=TERMS.map(([n],i)=>`<div class="cn" id="con-${i}"><span>${n}</span><div class="tk"><i></i></div><b></b></div>`).join('');
+const SX=z=>20+(z+5)/10*370,SY=p=>92-p*82;
+{let d='';for(let z=-5;z<=5.001;z+=.25)d+=(d?'L':'M')+SX(z).toFixed(1)+' '+SY(1/(1+Math.exp(-z))).toFixed(1);$('#sgp').setAttribute('d',d)}
+const num2=x=>(x>0?'+':x<0?'−':'')+Math.abs(x).toFixed(2).replace('.',',');
+/* Límite de presión sistólica para hipotensión pediátrica (criterio PALS) */
+const limitePAS=e=>e<1?70:e<10?70+2*Math.floor(e):90;
+
+function leerCalc(quiet){
+  const errs=[],x={},marca=(el,e,vacio)=>el.setAttribute('aria-invalid',!!e&&!(quiet&&vacio));
+  [...F_ID,...F_VIT,...F_LAB].forEach(f=>{const el=$('#c-'+f.k),t=el.value.trim();
+    if(f.t){x[f.k]=t;return}
+    if(t===''){x[f.k]=NaN;marca(el,'');return}
+    const v=parseFloat(t);let e='';
+    if(isNaN(v)||v<f.min||v>f.max)e=`${f.n}: ${t} está fuera del rango admitido (${fmt(f.min)} a ${fmt(f.max)}).`;
+    marca(el,e);if(e)errs.push(e);x[f.k]=e?NaN:v});
+  if(!isNaN(x.pas)&&!isNaN(x.pad)&&x.pad>=x.pas){errs.push('La presión diastólica debe ser menor que la sistólica.');$('#c-pad').setAttribute('aria-invalid',true)}
+  [...F_ALARM,...F_SINT].forEach(([k])=>x[k]=$('#c-'+k).checked);
+  const r={id:x.hc||x.nom||'Paciente sin identificar',nom:x.nom,hc:x.hc,edad:x.edad};
+  V.forEach(v=>{const el=$('#i-'+v.k),t=el.value.trim(),n=parseFloat(t);let e='',vacio=false;
+    if(t===''||isNaN(n)){e=`${v.n}: falta el valor.`;vacio=true}
+    else if(n<v.vmin||n>v.vmax)e=`${v.n}: ${fmt(n)} está fuera del rango admitido (${fmt(v.vmin)} a ${fmt(v.vmax)} ${v.u}).`;
+    else r[v.k]=n;
+    marca(el,e,vacio);if(e)errs.push(e)});
+  const sel=$('#i-h').value;x.hipFuente=sel;
+  if(sel=='auto'){
+    if(!isNaN(x.pas)&&!isNaN(x.edad)){x.lim=limitePAS(x.edad);r.h=x.pas<x.lim?1:0;
+      $('#hipc').textContent=`Calculada: ${r.h?'sí':'no'} (sistólica ${x.pas} frente al límite de ${x.lim} mmHg para ${x.edad} ${x.edad==1?'año':'años'}).`}
+    else{errs.push('Hipotensión: ingresa edad y presión sistólica, o elige Sí o No.');$('#hipc').textContent='Se calcula sola cuando hay edad y presión sistólica.'}
+  }else{r.h=+sel;$('#hipc').textContent='Marcada manualmente.'}
+  return {r,x,errs};
+}
+
+function clasificarOMS(r,x){
+  const alarma=F_ALARM.filter(([k])=>x[k]).map(([,n])=>n),graves=[];
+  if(r.h)graves.push('hipotensión para la edad');
+  const pp=x.pas-x.pad;if(!isNaN(pp)&&pp<=20)graves.push(`presión de pulso estrecha (${pp} mmHg)`);
+  if(!isNaN(x.llc)&&x.llc>2)graves.push(`llenado capilar lento (${dec(x.llc)} s)`);
+  if(r.alt>=1000||x.ast>=1000)graves.push('transaminasas ≥ 1.000 U/L');
+  if(graves.length)return {c:'g',t:'Dengue grave',l:graves.map(g=>'Signo de gravedad: '+g),alarma};
+  if(alarma.length)return {c:'a',t:'Dengue con signos de alarma',l:alarma,alarma};
+  return {c:'s',t:'Dengue sin signos de alarma',l:['No se marcó ningún signo de alarma.'],alarma};
+}
+
+function predIndividual(quiet){
+  const {r,x,errs}=leerCalc(quiet);
+  if(errs.length){
+    if(quiet)return;
+    ultimo=null;$('#ires').className='res';$('#iempty').hidden=true;$('#iout').hidden=true;$('#ierr').hidden=false;
+    $('#ierr').innerHTML=`<div class="rh">Faltan o hay datos por corregir</div><ul>${errs.map(e=>`<li>${esc(e)}</li>`).join('')}</ul>`;return}
+  const p=predecir(r);ultimo=r;
+  $('#iempty').hidden=true;$('#ierr').hidden=true;$('#iout').hidden=false;
+  $('#ires').className='res '+(p.hi?'hi':'lo');
+  $('#oid').textContent=x.nom||r.id;
+  $('#ometa').textContent=[x.hc?(/^hc/i.test(x.hc)?x.hc:'HC '+x.hc):'',!isNaN(x.edad)?`${x.edad} ${x.edad==1?'año':'años'}`:'',x.sexo,!isNaN(x.peso)?dec(x.peso)+' kg':'',!isNaN(x.dias)?`${x.dias} ${x.dias==1?'día':'días'} de fiebre`:''].filter(Boolean).join(', ');
+  $('#otag').className='tag '+(p.hi?'hi':'lo');$('#otag').textContent=p.hi?'Alto riesgo':'Riesgo bajo';
+  $('#opl').textContent=pc(p.pl);$('#osc').textContent=p.sc+' de 7';$('#opa').textContent=pc(p.pa);
+
+  const w=clasificarOMS(r,x);
+  $('#owho').className='whoc '+w.c;$('#owho').textContent=w.t;
+  $('#owhol').innerHTML=w.l.map(t=>`<li>${esc(t)}</li>`).join('');
+
+  const pp=x.pas-x.pad,filas=[];
+  filas.push(['Hipotensión',x.hipFuente=='auto'?`${r.h?'Sí':'No'}: sistólica ${x.pas} frente a ${x.lim} mmHg`:(r.h?'Sí':'No')+' (manual)']);
+  if(!isNaN(pp))filas.push(['Presión de pulso',`${pp} mmHg${pp<=20?', estrecha (≤ 20)':''}`]);
+  if(!isNaN(x.temp))filas.push(['Temperatura',`${dec(x.temp)} °C${x.temp>=38?', febril':''}`]);
+  if(!isNaN(x.llc))filas.push(['Llenado capilar',`${dec(x.llc)} s${x.llc>2?', lento (> 2 s)':''}`]);
+  if(!isNaN(x.ast))filas.push(['Relación AST/ALT',dec((x.ast/r.alt).toFixed(2))]);
+  filas.push(['Signos de alarma',`${w.alarma.length} de ${F_ALARM.length}`]);
+  const sint=F_SINT.filter(([k])=>x[k]).length;filas.push(['Otros síntomas',`${sint} de ${F_SINT.length}`]);
+  if(x.ns1||x.igm)filas.push(['Pruebas',[x.ns1&&'NS1 '+x.ns1.toLowerCase(),x.igm&&'IgM '+x.igm.toLowerCase()].filter(Boolean).join(', ')]);
+  $('#ocalc').innerHTML=filas.map(([a,b])=>`<dt>${a}</dt><dd>${esc(b)}</dd>`).join('');
+
+  const mx=Math.max(...MODEL.lr.map(Math.abs));
+  TERMS.forEach(([n,ci,k],i)=>{const c=MODEL.lr[ci],on=k==null||(k=='h'?!!r.h:!!p.f[k]),el=$('#con-'+i);
+    el.classList.toggle('neg',c<0);el.classList.toggle('off',!on);el.querySelector('i').style.width=on?Math.abs(c)/mx*100+'%':'0';
+    el.querySelector('b').textContent=on?num2(c):'0'});
+  $('#sgd').style.transform=`translate(${SX(Math.max(-5,Math.min(5,p.lg)))}px,${SY(p.pl)}px)`;
+  $('#olg').innerHTML=`Suma (logit) = <b>${num2(p.lg)}</b>; la sigmoide la convierte en <b>${pc(p.pl)}</b>.`;
+  const fac=[r.h?'hipotensión (+3)':null,...V.filter(v=>p.f[v.k]).map(v=>`${low(v.n)} ${v.lo?'≤':'≥'} ${fmt(v.cut)} (+1)`)].filter(Boolean);
+  $('#ofx').textContent=fac.length?'Factores del modelo presentes: '+fac.join(', ')+'.':'Ningún valor del modelo cruza su corte.';
+  $('#oact').textContent=p.hi?'Score ≥ 2: vigilar de cerca.':'Score menor que 2: seguimiento ambulatorio.';
+  const llenos=[...F_ID,...F_VIT,...F_LAB].filter(f=>f.t?!!x[f.k]:!isNaN(x[f.k])).length+1+V.length+F_ALARM.length+F_SINT.length;
+  $('#ocomp').textContent=`Ficha con ${llenos} de ${TOTAL_VARS} variables registradas (los síntomas sin marcar cuentan como «no»). Herramienta académica: no sustituye la valoración clínica.`;
+  $('#iaddm').textContent='';
+}
+$('#iadd').onclick=()=>anadirAlLote();
+$('#iprint').onclick=()=>window.print();
+$('#ipred').onclick=()=>predIndividual(false);
+$$('#pv-ind input,#pv-ind select').forEach(el=>{
+  el.addEventListener(el.tagName=='SELECT'||el.type=='checkbox'?'change':'input',()=>predIndividual(true));
+  if(el.tagName=='INPUT')el.addEventListener('keydown',e=>{if(e.key=='Enter')predIndividual(false)})});
+$$('[data-pre]').forEach(b=>b.onclick=()=>{const e=PRE[b.dataset.pre];$('#i-h').value=String(e.h);V.forEach(v=>{const el=$('#i-'+v.k);el.value=e[v.k];el.removeAttribute('aria-invalid')});predIndividual(false)});
+$('#iclr').onclick=()=>{$$('#pv-ind input').forEach(el=>{if(el.type=='checkbox')el.checked=false;else el.value='';el.removeAttribute('aria-invalid')});
+  $$('#pv-ind select').forEach(el=>el.selectedIndex=0);$('#hipc').textContent='Se calcula sola cuando hay edad y presión sistólica.';ultimo=null;
+  $('#ires').className='res';$('#iempty').hidden=false;$('#ierr').hidden=true;$('#iout').hidden=true};
+
+/* ===== Predicción por lote ===== */
+const CAB='id;hipotension;plaquetas;hematocrito;alt;leucocitos',CAB2='id;nombre;historia;edad;hipotension;plaquetas;hematocrito;alt;leucocitos';
+const ALIAS={id:'id',paciente:'id',codigo:'id',identificador:'id',hipotension:'h',hipotensionarterial:'h',h:'h',hyp:'h',plaquetas:'plat',plat:'plat',hematocrito:'pcv',pcv:'pcv',hto:'pcv',alt:'alt',tgp:'alt',leucocitos:'wbc',wbc:'wbc',globulosblancos:'wbc',nombre:'nom',nombrecompleto:'nom',historia:'hc',historiaclinica:'hc',hc:'hc',edad:'edad',edadanos:'edad',plateletcount:'plat',platelets:'plat',hematocrit:'pcv',highestwbc:'wbc'};
+const norm=t=>String(t).replace(/\(.*?\)/g,'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z]/g,'');
+function separador(linea){const n=c=>linea.split(c).length-1,t=n('\t'),pc_=n(';'),c=n(',');return t>=pc_&&t>=c&&t>0?'\t':pc_>=c&&pc_>0?';':','}
+function numero(t){t=String(t??'').trim().replace(/\s/g,'');if(!t)return NaN;
+  if(/^\d{1,3}(\.\d{3})+(,\d+)?$/.test(t))t=t.replace(/\./g,'').replace(',','.');else t=t.replace(',','.');
+  return /^-?\d*\.?\d+$/.test(t)?parseFloat(t):NaN}
+function siNo(t){t=String(t??'').trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+  if(['1','si','s','true','yes','x','verdadero'].includes(t))return 1;if(['0','no','n','false','','falso'].includes(t))return 0;return NaN}
+function validar(r){
+  r.err=[];
+  if(isNaN(r.h))r.err.push(`hipotensión «${r.raw.h}» no es sí/no`);
+  if(String(r.raw.edad??'').trim()!==''&&(isNaN(r.edad)||r.edad<0||r.edad>17))r.err.push('edad no válida (0 a 17 años)');
+  V.forEach(v=>{const x=r[v.k];
+    if(isNaN(x))r.err.push(`${low(v.n)} vacío o no numérico`);
+    else if(x<v.vmin||x>v.vmax)r.err.push(`${low(v.n)} fuera de rango (${fmt(v.vmin)} a ${fmt(v.vmax)})`)});
+  if(!r.err.length)Object.assign(r,predecir(r));
+}
+/* Reconoce columnas en español, en CSV propio o en el formato MASTER CHART del estudio (códigos 1/2) */
+function colInfo(h){const n=norm(h);
+  if(n=='bpatadmission')return {k:'h',tf:v=>v==2?1:v==1?0:NaN};
+  if(n.startsWith('groupsdengue'))return {k:'y',tf:v=>v==2?1:v==1?0:NaN};
+  if(['complicado','complicacion','complicaciones','denguegrave','desenlace','resultado','outcome'].includes(n))return {k:'y'};
+  const k=ALIAS[n];return k?{k}:null}
+function leerCSV(texto){
+  const lineas=texto.replace(/^\uFEFF/,'').split(/\r?\n/).filter(l=>l.trim()&&!l.trim().startsWith('#'));
+  if(!lineas.length)return {err:'No hay datos. Pega filas, sube un CSV o Excel, o pulsa Cargar ejemplo.'};
+  const sep=separador(lineas[0]),celdas=l=>l.split(sep).map(c=>c.trim().replace(/^"(.*)"$/,'$1'));
+  const vistos=new Set();
+  let cols=celdas(lineas[0]).map(colInfo).map(c=>c&&!vistos.has(c.k)?(vistos.add(c.k),c):null),ini=1;
+  const req=['h','plat','pcv','alt','wbc'],tiene=k=>cols.some(c=>c&&c.k==k),falt=req.filter(k=>!tiene(k));
+  if(falt.length){
+    const pri=celdas(lineas[0]),numericas=pri.filter(c=>!isNaN(numero(c))).length;
+    if(numericas>=4&&(pri.length==6||pri.length==5)){cols=(pri.length==6?['id',...req]:req).map(k=>({k}));ini=0}
+    else{const nom={h:'hipotension',plat:'plaquetas',pcv:'hematocrito',alt:'alt',wbc:'leucocitos'};
+      return {err:`Falta en la cabecera: ${falt.map(k=>nom[k]).join(', ')}. La primera fila debe ser: ${CAB}`}}
+  }
+  const tf=k=>(cols.find(c=>c&&c.k==k)||{}).tf;
+  const filas=lineas.slice(ini).map((l,i)=>{
+    const c=celdas(l),r={n:i+1,raw:{}};
+    cols.forEach((ci,j)=>{if(ci)r.raw[ci.k]=c[j]??''});
+    r.nom=(r.raw.nom||'').trim();r.hc=(r.raw.hc||'').trim();r.edad=numero(r.raw.edad);
+    r.id=(r.raw.id||'').trim()||r.hc||'Fila '+(i+1);
+    r.h=tf('h')?tf('h')(numero(r.raw.h)):siNo(r.raw.h);
+    if(tiene('y')){const t=String(r.raw.y??'').trim(),v=t===''?NaN:tf('y')?tf('y')(numero(t)):siNo(t);r.y=v===0||v===1?v:undefined}
+    V.forEach(v=>r[v.k]=numero(r.raw[v.k]));
+    validar(r);return r});
+  if(!filas.length)return {err:'Solo se encontró la cabecera. Añade al menos una fila de pacientes.'};
+  return {filas};
+}
+
+/* Estado del lote y criterio de clasificación (modificable) */
+let LOTE=[],filtro='todos',selN=null,CRIT={m:'sc',cut:2},sigN=1;
+const ok=r=>!r.err.length;
+const esAlto=r=>CRIT.m=='sc'?r.sc>=CRIT.cut:r[CRIT.m]>=CRIT.cut/100;
+const valor=r=>CRIT.m=='sc'?r.sc/7:r[CRIT.m];
+const txtVal=r=>CRIT.m=='sc'?r.sc+' / 7':pc(r[CRIT.m]);
+const corteTxt=()=>CRIT.m=='sc'?`score ≥ ${CRIT.cut}`:`${CRIT.m=='pl'?'logística':'red'} ≥ ${CRIT.cut} %`;
+const ROW=28;
+
+function calcularLote(){
+  const res=leerCSV($('#csv').value);
+  if(res.err){$('#lmsg').className='bad';$('#lmsg').textContent=res.err;$('#lres').hidden=true;LOTE=[];return}
+  LOTE=res.filas;sigN=LOTE.length+1;filtro='todos';selN=null;
+  const e=LOTE.filter(r=>!ok(r)).length;
+  $('#lmsg').className=e?'bad':'';
+  $('#lmsg').textContent=`${LOTE.length} ${LOTE.length==1?'fila leída':'filas leídas'}${origen?' de '+origen:''}.`+(e?` ${e} con errores: aparecen en gris; tócalas para corregirlas.`:'');
+  $$('#ci .cr').forEach(x=>x.remove());
+  LOTE.forEach((r,i)=>crearBarra(r,i));
+  $('#lres').hidden=false;editor();
+  entrenarConLote();actualizar();
+}
+let origen='';
+
+/* ===== Entrenamiento con el archivo subido ===== */
+function entrenarConLote(){
+  const box=$('#ltrain'),lab=LOTE.filter(r=>ok(r)&&(r.y===0||r.y===1));
+  if(!LOTE.some(r=>'y' in r)){box.hidden=true;return}
+  const D=lab.map(r=>({x:[r.h,r.f.wbc,r.f.alt,r.f.plat,r.f.pcv],y:r.y})),pos=D.filter(d=>d.y).length;
+  box.hidden=false;
+  if(D.length<20||pos<2||D.length-pos<2){
+    box.innerHTML=`<h3>No se pudo entrenar con este archivo</h3><p class="mini">Trae la columna de desenlace, pero solo hay ${D.length} pacientes con desenlace y datos completos (${pos} complicados). Para entrenar se necesitan al menos 20, con casos de los dos grupos. Las predicciones usan el modelo actual.</p>`;return}
+  const enc=codificar(D);
+  if(enc===TRAIN.enc){panelEntrenamiento(null,D.length,LOTE.length-D.length,true);return}
+  const antes=MODEL;
+  MODEL=entrenarTodo(D);
+  TRAIN={D,enc,fuente:origen||'la lista de pacientes',fecha:new Date().toLocaleString('es-CO'),nota:LOTE.length>D.length?`${LOTE.length-D.length} filas sin desenlace o con datos incompletos quedaron fuera.`:''};
+  if(enc===BASE_ENC){MODEL=MODELO_BASE;TRAIN=TRAIN_BASE}
+  guardarModelo();aplicarModelo();
+  panelEntrenamiento(antes,D.length,LOTE.length-D.length,false);
+}
+function panelEntrenamiento(antes,n,fuera,igual){
+  const E=evaluar(TRAIN.D,MODEL),nom=['Intercepto','Hipotensión','Leucocitos ≥ 7.000','ALT ≥ 70','Plaquetas ≤ 75.000','Hematocrito ≥ 42 %'];
+  $('#ltrain').innerHTML=`<h3>${igual?'Este archivo es el que entrena el modelo actual':'Modelo entrenado con este archivo'}</h3>
+    <p class="mini">${esc(TRAIN.fuente)}: ${n} pacientes con desenlace y datos completos (${E.npos} complicados).${fuera?` ${fuera==1?'Una fila no se usó porque no trae desenlace o tiene':fuera+' filas no se usaron porque no traen desenlace o tienen'} datos incompletos.`:''} La regresión logística y la red neuronal se ajustaron a estos datos y ya se usan en toda la página. Las métricas se miden sobre los mismos pacientes del entrenamiento, así que son optimistas.</p>
+    <div class="sum tsum"><div><strong>${dec(E.aucL.toFixed(3))}</strong>AUC regresión logística</div><div><strong>${dec(E.aucR.toFixed(3))}</strong>AUC red neuronal</div><div><strong>${pc(E.sens)}</strong>sensibilidad del score ≥ 2</div><div><strong>${pc(E.spec)}</strong>especificidad del score ≥ 2</div></div>
+    <div class="tw" style="max-height:none;margin-top:12px"><table><thead><tr><th>Coeficiente logístico</th>${antes?'<th>Antes</th>':''}<th>${antes?'Ahora':'Valor'}</th></tr></thead><tbody>${MODEL.lr.map((c,i)=>`<tr><td>${nom[i]}</td>${antes?`<td>${dec(antes.lr[i].toFixed(2))}</td>`:''}<td><b>${dec(c.toFixed(2))}</b></td></tr>`).join('')}</tbody></table></div>
+    <div class="btns">${TRAIN.base?'':'<button class="btn gh" id="tbase">Volver al modelo base (MASTER CHART)</button>'}<a class="btn gh" href="#c3" style="text-decoration:none">Ver métricas y curva ROC</a></div>`;
+  const b=$('#tbase');if(b)b.onclick=volverBase;
+}
+function volverBase(){MODEL=MODELO_BASE;TRAIN=TRAIN_BASE;try{localStorage.removeItem(CLAVE)}catch(e){}
+  aplicarModelo();$('#ltrain').hidden=true;$('#lmsg').className='';$('#lmsg').textContent='Se restauró el modelo base, entrenado con MASTER_CHART_F1000Research.xlsx.'}
+function aplicarModelo(){
+  if(ultimo)predIndividual(true);
+  if(LOTE.length){LOTE.forEach(validar);const r=LOTE.find(x=>x.n===selN);if(r)estadoEditor(r);actualizar()}
+  renderEstudio();
+}
+function crearBarra(r,i){
+  const el=document.createElement('button');el.className='cr';el.style.top=i*ROW+'px';
+  el.innerHTML='<span class="cl"></span><span class="ct"><i class="cb"></i><i class="cd"></i></span><span class="cv"></span>';
+  el.onclick=()=>seleccionar(r.n);r.el=el;$('#ci').appendChild(el);
+}
+function visibles(){
+  let v=LOTE.filter(r=>filtro=='todos'||(filtro=='err'?!ok(r):ok(r)&&(filtro=='hi'?esAlto(r):!esAlto(r))));
+  const o=$('#lsort').value,k={p:'pl',a:'pa'}[o];
+  if(o!='o')v=[...v].sort((a,b)=>(a.err.length-b.err.length)||(o=='s'?(b.sc-a.sc)||(b.pl-a.pl):b[k]-a[k]));
+  return v;
+}
+function actualizar(){
+  const bien=LOTE.filter(ok),hi=bien.filter(esAlto).length,lo=bien.length-hi,er=LOTE.length-bien.length;
+  const media=bien.length?bien.reduce((a,r)=>a+r.pl,0)/bien.length:0;
+  $('#lsum').innerHTML=`<div><strong>${bien.length}</strong>pacientes evaluados</div>
+    <div class="h"><strong>${hi}</strong>alto riesgo${bien.length?' ('+pc(hi/bien.length)+')':''}</div>
+    <div class="l"><strong>${lo}</strong>riesgo bajo</div>
+    <div><strong>${bien.length?pc(media):'—'}</strong>probabilidad logística media</div>`;
+  $('#ldist').innerHTML=bien.length?`<i style="flex:${hi};transition:flex .5s"></i><i style="flex:${lo};transition:flex .5s"></i>`:'';
+  const ops=[['todos','Todos',LOTE.length],['hi','Alto riesgo',hi],['lo','Riesgo bajo',lo]];if(er)ops.push(['err','Con errores',er]);
+  if(filtro=='err'&&!er)filtro='todos';
+  $('#lf').innerHTML=ops.map(([k,t,n])=>`<button data-f="${k}" class="${filtro==k?'on':''}">${t} (${n})</button>`).join('');
+  $$('#lf button').forEach(b=>b.onclick=()=>{filtro=b.dataset.f;actualizar()});
+  const vis=visibles();
+  pintarGrafico(vis);pintarTabla(vis);
+}
+function pintarGrafico(vis){
+  const pos=new Map(vis.map((r,i)=>[r.n,i]));
+  LOTE.forEach(r=>{const el=r.el;if(!el)return;const i=pos.get(r.n),b=ok(r);
+    if(i===undefined){el.classList.add('out');el.tabIndex=-1}else{el.classList.remove('out');el.tabIndex=0;el.style.top=i*ROW+'px'}
+    el.classList.toggle('e',!b);el.classList.toggle('hi',b&&esAlto(r));el.classList.toggle('sel',r.n===selN);
+    el.querySelector('.cl').textContent=r.id;
+    el.querySelector('.cb').style.width=b?valor(r)*100+'%':'0';
+    const d=el.querySelector('.cd');
+    if(b&&CRIT.m!='sc'){d.style.display='';d.style.left=(CRIT.m=='pl'?r.pa:r.pl)*100+'%'}else d.style.display='none';
+    el.querySelector('.cv').textContent=b?txtVal(r):'error';
+    el.title=b?`${r.id}${sub(r)?' ('+sub(r)+')':''}: score ${r.sc}, logística ${pc(r.pl)}, red ${pc(r.pa)}. Toca para modificar.`:`${r.id}: ${r.err.join('; ')}. Toca para corregir.`;
+    el.setAttribute('aria-label',el.title)});
+  $('#ci').style.height=vis.length*ROW+'px';$('#cempty').hidden=!!vis.length;
+  $('#th').style.display=vis.length?'':'none';
+  $('#th').style.setProperty('--c',CRIT.m=='sc'?CRIT.cut/7:CRIT.cut/100);
+  const ticks=CRIT.m=='sc'?[0,1,2,3,4,5,6,7].map(t=>[t/7,t]):[0,25,50,75,100].map(t=>[t/100,t+' %']);
+  $('#axt').innerHTML=ticks.map(([x,t])=>`<span style="left:${x*100}%">${t}</span>`).join('');
+  $('#lgdot').style.display=CRIT.m=='sc'?'none':'';
+}
+const sub=r=>[r.nom,!isNaN(r.edad)?r.edad+(r.edad==1?' año':' años'):'',r.hc&&r.hc!==r.id?(/^hc/i.test(r.hc)?r.hc:'HC '+r.hc):''].filter(Boolean).join(', ');
+const pac=r=>esc(r.id)+(sub(r)?`<span class="nm">${esc(sub(r))}</span>`:'');
+function pintarTabla(v){
+  const conY=LOTE.some(r=>r.y===0||r.y===1),real=r=>conY?`<td>${r.y===1?'<span class="tag hi">Sí</span>':r.y===0?'<span class="tag lo">No</span>':'—'}</td>`:'';
+  $('#lth').innerHTML=`<tr><th>Paciente</th><th>Hipot.</th><th>Plaquetas</th><th>Hto %</th><th>ALT</th><th>Leucocitos</th><th>Score</th><th>Logística</th><th>Red</th><th>Riesgo</th>${conY?'<th>Se complicó</th>':''}</tr>`;
+  const celda=(r,v_)=>{const x=r[v_.k];if(isNaN(x))return `<td>${esc(r.raw[v_.k]||'—')}</td>`;
+    return `<td class="${ok(r)&&r.f[v_.k]?'x':''}">${fmt(x)}</td>`};
+  $('#ltb').innerHTML=v.map(r=>!ok(r)
+    ?`<tr class="e${r.n===selN?' sel':''}" data-n="${r.n}"><td>${pac(r)}</td><td>${isNaN(r.h)?esc(r.raw.h||'—'):r.h?'Sí':'No'}</td>${V.map(x=>celda(r,x)).join('')}<td>—</td><td>—</td><td>—</td><td><span class="tag err">Error</span><small>${esc(r.err.join('; '))}</small></td>${real(r)}</tr>`
+    :`<tr class="${r.n===selN?'sel':''}" data-n="${r.n}"><td>${pac(r)}</td><td class="${r.h?'x':''}">${r.h?'Sí':'No'}</td>${V.map(x=>celda(r,x)).join('')}<td>${r.sc}</td><td>${pc(r.pl)}</td><td>${pc(r.pa)}</td><td><span class="tag ${esAlto(r)?'hi':'lo'}">${esAlto(r)?'Alto':'Bajo'}</span></td>${real(r)}</tr>`).join('')
+    ||'<tr><td colspan="11" style="text-align:center;color:var(--mute)">No hay pacientes en esta categoría.</td></tr>';
+  $$('#ltb tr[data-n]').forEach(tr=>tr.onclick=()=>{seleccionar(+tr.dataset.n);$('#ed').scrollIntoView({behavior:'smooth',block:'nearest'})});
+}
+
+/* Editor del paciente seleccionado: modificar valores y ver la gráfica moverse */
+function seleccionar(n){selN=selN===n?null:n;editor();actualizar()}
+function editor(){
+  const r=LOTE.find(x=>x.n===selN),box=$('#ed');
+  if(!r){box.innerHTML='<p class="empty">Toca una barra o una fila de la tabla para ver y modificar los datos de ese paciente. Su barra se mueve mientras cambias los valores.</p>';return}
+  box.innerHTML=`<div class="eh"><h4>${esc(r.id)}</h4><span class="tag" id="etag"></span></div>${sub(r)?`<p class="pmeta" style="margin:0 0 6px">${esc(sub(r))}</p>`:''}<div class="ek" id="ek"></div>
+    <button class="etg" id="ehyp"><span>Hipotensión arterial</span><b></b></button>
+    ${V.map(v=>`<div class="ef" id="ef-${v.k}"><div class="t"><label for="en-${v.k}">${v.n}<span></span></label><input type="number" id="en-${v.k}" step="${v.st}"></div><input type="range" id="er-${v.k}" min="${v.min}" max="${v.max}" step="${v.st}" aria-label="${v.n}"></div>`).join('')}
+    <div class="btns" style="margin-top:6px"><button class="btn gh" id="edel">Quitar del lote</button><button class="btn gh" id="ecl">Cerrar</button></div>
+    <p class="mini" style="margin-top:10px">Los cambios también se escriben en la lista de pacientes. Descarga los resultados para conservarlos.</p>`;
+  V.forEach(v=>{const n_=$('#en-'+v.k),rg=$('#er-'+v.k);
+    if(!isNaN(r[v.k])){n_.value=r[v.k];rg.value=Math.min(v.max,r[v.k])}
+    n_.oninput=()=>{const x=numero(n_.value);r[v.k]=x;r.raw[v.k]=n_.value;if(!isNaN(x))rg.value=Math.min(v.max,x);cambio(r)};
+    rg.oninput=()=>{r[v.k]=+rg.value;n_.value=rg.value;cambio(r)}});
+  $('#ehyp').onclick=()=>{r.h=r.h===1?0:1;cambio(r)};
+  $('#edel').onclick=()=>{r.el.remove();LOTE=LOTE.filter(x=>x!==r);selN=null;sincronizarCSV();editor();actualizar();
+    $('#lmsg').className='';$('#lmsg').textContent=`${r.id} se quitó del lote. Quedan ${LOTE.length}.`};
+  $('#ecl').onclick=()=>seleccionar(r.n);
+  estadoEditor(r);
+}
+function estadoEditor(r){
+  const b=ok(r),t=$('#etag');
+  t.className='tag '+(b?(esAlto(r)?'hi':'lo'):'err');t.textContent=b?(esAlto(r)?'Alto riesgo':'Riesgo bajo'):'Error';
+  $('#ek').innerHTML=b?`Score <b>${r.sc}</b> de 7, logística <b>${pc(r.pl)}</b>, red <b>${pc(r.pa)}</b>`:`Corrige para calcular:<ul>${r.err.map(e=>`<li>${esc(e)}</li>`).join('')}</ul>`;
+  const hb=$('#ehyp');hb.setAttribute('aria-pressed',r.h===1);hb.querySelector('b').textContent=isNaN(r.h)?'Sin dato':r.h?'Sí (+3)':'No';
+  V.forEach(v=>{const x=r[v.k],on=!isNaN(x)&&(v.lo?x<=v.cut:x>=v.cut);
+    $('#ef-'+v.k).classList.toggle('on',on);$('#ef-'+v.k+' .t span').textContent=v.f+(on?', cruza (+1)':'')});
+}
+function cambio(r){validar(r);estadoEditor(r);sincronizarCSV();actualizar()}
+function sincronizarCSV(){
+  const lim=t=>String(t||'').replace(/[;\n]/g,' ');
+  const conY=LOTE.some(r=>'y' in r);
+  $('#csv').value=CAB2+(conY?';complicado':'')+'\n'+LOTE.map(r=>[lim(r.id),lim(r.nom),lim(r.hc),isNaN(r.edad)?(r.raw.edad||''):r.edad,isNaN(r.h)?(r.raw.h||''):r.h,...V.map(v=>isNaN(r[v.k])?(r.raw[v.k]||''):dec(r[v.k]))].concat(conY?[r.y===0||r.y===1?r.y:'']:[]).join(';')).join('\n');
+}
+
+/* Criterio modificable */
+function setCrit(m,cut){
+  CRIT={m,cut};const s=$('#cr');
+  if(m=='sc'){s.min=1;s.max=7}else{s.min=5;s.max=95}
+  s.step=1;s.value=cut;$('#cm').value=m;$('#cv').textContent=m=='sc'?cut:cut+' %';
+  actualizar();const r=LOTE.find(x=>x.n===selN);if(r)estadoEditor(r);
+}
+$('#cm').onchange=e=>setCrit(e.target.value,e.target.value=='sc'?2:50);
+$('#cr').oninput=e=>setCrit(CRIT.m,+e.target.value);
+$('#creset').onclick=()=>setCrit('sc',2);
+$('#lsort').onchange=actualizar;
+$('#lcalc').onclick=calcularLote;
+
+function descargar(nombre,texto){const b=new Blob(['\uFEFF'+texto],{type:'text/csv;charset=utf-8'}),a=document.createElement('a');
+  a.href=URL.createObjectURL(b);a.download=nombre;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),1500)}
+const dec=x=>String(x).replace('.',',');
+$('#ltpl').onclick=()=>descargar('plantilla_lote_denguepredict.csv',CAB2+'\nP-001;Paciente de ejemplo 1;HC-0001;6;0;180000;38;35;5500\nP-002;Paciente de ejemplo 2;HC-0002;9;0;70000;44;40;5000\nP-003;Paciente de ejemplo 3;HC-0003;4;1;40000;46;120;9000\n');
+$('#ldl').onclick=()=>{if(!LOTE.length)return;
+  const conY=LOTE.some(r=>'y' in r);
+  const filas=LOTE.map(r=>[r.id,r.nom,r.hc,isNaN(r.edad)?(r.raw.edad||''):r.edad,isNaN(r.h)?r.raw.h:r.h,...V.map(v=>isNaN(r[v.k])?(r.raw[v.k]||''):dec(r[v.k]))].concat(conY?[r.y===0||r.y===1?r.y:'']:[]).concat(!ok(r)
+    ?['','','','error','',r.err.join(' / ')]
+    :[r.sc,dec((r.pl*100).toFixed(1)),dec((r.pa*100).toFixed(1)),esAlto(r)?'alto':'bajo',corteTxt(),'']).map(c=>/[;"\n]/.test(String(c))?'"'+String(c).replace(/"/g,'""')+'"':c).join(';'));
+  descargar('resultados_lote_denguepredict.csv',CAB2+(conY?';complicado':'')+';score;prob_logistica_%;prob_red_%;riesgo;criterio;observacion\n'+filas.join('\n')+'\n')};
+$('#lex').onclick=()=>{
+  const ej=[['P-001',0,180000,38,35,5500],['P-002',0,70000,44,40,5000],['P-003',1,40000,46,120,9000],['P-004',0,150000,41,55,6200],['P-005',0,62000,39,88,7400],
+    ['P-006',0,210000,36,28,4800],['P-007',1,95000,40,45,6000],['P-008',0,48000,45.5,140,8100],['P-009',0,120000,43,30,5200],['P-010',0,88000,38.5,72,6900],
+    ['P-011',0,230000,37,22,5100],['P-012',1,30000,48,210,11200]];
+  $('#csv').value=CAB+'\n'+ej.map(r=>r.map(dec).join(';')).join('\n');origen='el ejemplo';calcularLote()};
+$('#lclr').onclick=()=>{$('#csv').value='';LOTE=[];selN=null;$('#lres').hidden=true;$('#lmsg').className='';$('#lmsg').textContent=''};
+function leerArchivo(file){
+  if(!file)return;const malo=t=>{$('#lmsg').className='bad';$('#lmsg').textContent=t};
+  if(/\.(xlsx|xlsm|xls|ods)$/i.test(file.name)){
+    if(typeof XLSX==='undefined')return malo('Para leer archivos de Excel la página necesita conexión a internet la primera vez. Sin conexión, guarda el archivo como CSV desde Excel y súbelo.');
+    const rd=new FileReader();
+    rd.onload=()=>{try{
+      const wb=XLSX.read(new Uint8Array(rd.result),{type:'array'});let mejor=null;
+      for(const hoja of wb.SheetNames){
+        const filas=XLSX.utils.sheet_to_json(wb.Sheets[hoja],{header:1,raw:true,defval:''});
+        for(let i=0;i<Math.min(15,filas.length);i++){
+          const cs=filas[i].map(c=>colInfo(String(c))),n=['h','plat','pcv','alt','wbc'].filter(k=>cs.some(c=>c&&c.k==k)).length;
+          if(n>=3){if(!mejor||n>mejor.n)mejor={hoja,filas:filas.slice(i),n};break}}}
+      if(!mejor)return malo(`No encontré en «${file.name}» una fila de encabezados con las columnas de plaquetas, hematocrito, ALT, leucocitos e hipotensión (o presión arterial al ingreso).`);
+      const celda=c=>c instanceof Date?c.toISOString().slice(0,10):typeof c=='number'?dec(String(c)):String(c).replace(/[;\r\n]+/g,' ').trim();
+      $('#csv').value=mejor.filas.filter(f=>f.some(c=>String(c).trim()!=='')).map(f=>f.map(celda).join(';')).join('\n');
+      origen=`«${file.name}» (hoja ${mejor.hoja})`;calcularLote();
+    }catch(e){malo(`No se pudo leer «${file.name}». Comprueba que sea un archivo de Excel válido o guárdalo como CSV.`)}};
+    rd.onerror=()=>malo('No se pudo leer el archivo.');
+    rd.readAsArrayBuffer(file);return}
+  const rd=new FileReader();
+  rd.onload=()=>{$('#csv').value=rd.result;origen=`«${file.name}»`;calcularLote()};
+  rd.onerror=()=>malo('No se pudo leer el archivo. Guárdalo como CSV (UTF-8) e inténtalo de nuevo.');
+  rd.readAsText(file,'utf-8')}
+$('#lfile').onchange=e=>{leerArchivo(e.target.files[0]);e.target.value=''};
+const ta=$('#csv');ta.addEventListener('input',()=>origen='');
+ta.addEventListener('dragover',e=>{e.preventDefault();ta.classList.add('drag')});
+ta.addEventListener('dragleave',()=>ta.classList.remove('drag'));
+ta.addEventListener('drop',e=>{e.preventDefault();ta.classList.remove('drag');leerArchivo(e.dataTransfer.files[0])});
+
+function anadirAlLote(){
+  if(!ultimo)return;const u=ultimo;
+  if($('#csv').value.trim()){const res=leerCSV($('#csv').value);
+    if(res.err){$('#iaddm').textContent='La lista del lote tiene un error de formato; revísala antes de añadir.';return}
+    LOTE=res.filas}else LOTE=[];
+  const r={n:LOTE.length+1,raw:{},id:u.hc||u.nom||'Paciente '+(LOTE.length+1),nom:u.nom||'',hc:u.hc||'',edad:u.edad,h:u.h};
+  V.forEach(v=>r[v.k]=u[v.k]);validar(r);LOTE.push(r);
+  sincronizarCSV();calcularLote();
+  $('#iaddm').innerHTML=`Añadido. El lote tiene ${LOTE.length} ${LOTE.length==1?'paciente':'pacientes'}. <button class="btn gh" style="padding:3px 10px;font-size:12px" id="iver">Ver lote</button>`;
+  $('#iver').onclick=()=>{verLote();$('#pred').scrollIntoView({behavior:'smooth'})};
+}
+
+/* Cohorte, métricas y código: calculados con los datos que entrenan el modelo */
+let mode='real',sel=null,L={},TX={},tabActual=0;
+function paint(){
+  $('#dots').classList.toggle('cm',mode=='cm');
+  $$('#dots b').forEach(b=>{const c=b.dataset.c,g=mode=='real'?(b.classList.contains('pos')?'pos':'neg'):c;b.classList.toggle('dim',!!sel&&g!=sel)});
+  $('#leg').innerHTML=L[mode].map(([k,n,t])=>`<button data-k="${k}" class="${sel==k?'on':''}"><strong>${n}</strong>${t}</button>`).join('');
+  $$('#leg button').forEach(b=>b.onclick=()=>{sel=sel==b.dataset.k?null:b.dataset.k;paint()});
+  $('#dtxt').textContent=TX[mode];
+}
+$$('#c1 .tg button').forEach(b=>b.onclick=()=>{mode=b.dataset.m;sel=null;$$('#c1 .tg button').forEach(x=>x.classList.toggle('on',x==b));paint()});
+$$('.tabs button').forEach(b=>b.onclick=()=>code(+b.dataset.c));
+$('.cp').onclick=e=>navigator.clipboard.writeText($('#code').textContent).then(()=>{e.target.textContent='Copiado';setTimeout(()=>e.target.textContent='Copiar',1400)});
+const d2=x=>x.toFixed(2),d3=x=>dec(x.toFixed(3));
+
+function renderEstudio(){
+  const E=evaluar(TRAIN.D,MODEL),src=`Datos: ${TRAIN.fuente}, ${E.n} pacientes.${TRAIN.nota?' '+TRAIN.nota:''}${TRAIN.fecha?' Entrenado el '+TRAIN.fecha+'.':''}`;
+  $('#msrc').textContent=`Modelo entrenado con ${TRAIN.fuente} (${E.n} pacientes).`;
+  $('#c1h').textContent=`${fmt(E.n)} niños, ${fmt(E.npos)} complicaciones`;
+  $('#c1src').textContent=src;$('#c3src').textContent=src;
+  const cat=[...Array(E.tp).fill('tp'),...Array(E.fn).fill('fn'),...Array(E.fp).fill('fp'),...Array(E.tn).fill('tn')];
+  $('#dots').innerHTML=cat.map(c=>`<b class="${c=='tp'||c=='fn'?'pos ':''}${c}" data-c="${c}"></b>`).join('');
+  L={real:[['pos',fmt(E.npos),'Complicados'],['neg',fmt(E.n-E.npos),'No complicados']],cm:[['tp',fmt(E.tp),'Detectados'],['fn',fmt(E.fn),'Omitidos'],['fp',fmt(E.fp),'Falsas alarmas'],['tn',fmt(E.tn),'Bien descartados']]};
+  TX={real:`Se complicó el ${pc(E.npos/E.n)} de los niños, más o menos 1 de cada ${Math.round(E.n/E.npos)}. Este desbalance obliga a vigilar que los modelos no ignoren la clase minoritaria.`,
+    cm:`El score con corte ≥ 2 detecta ${E.tp} de ${E.npos} casos graves y omite ${E.fn}. A cambio genera ${E.fp} falsas alarmas: es el precio de priorizar la sensibilidad.`};
+  paint();
+  const M=[[pc(E.sens),'Sensibilidad',`De cada 100 niños que sí se complican, el score detecta unos ${Math.round(E.sens*100)}.`],
+    [pc(E.spec),'Especificidad',`De cada 100 niños sin complicaciones, unos ${Math.round(E.spec*100)} se identifican como tales.`],
+    [pc(E.vpn),'Valor predictivo negativo','Si el score dice «bajo riesgo», casi siempre tiene razón: sirve para descartar.'],
+    [d3(E.aucL),'Área bajo la curva (AUC)',`Probabilidad de que la regresión logística dé más riesgo a un niño complicado que a uno que no lo está. 0,5 es azar y 1 es perfecto. La red neuronal obtiene ${d3(E.aucR)} y el score ${d3(E.aucS)}.`]];
+  const on=Math.max(0,$$('.m').findIndex(e=>e.classList.contains('on')));
+  $('#mets').innerHTML=M.map((m,i)=>`<div class="m ${i==on?'on':''}"><b>${m[0]}</b><span>${m[1]}</span><small>${m[2]}</small></div>`).join('');
+  $$('.m').forEach(e=>e.onclick=()=>$$('.m').forEach(x=>x.classList.toggle('on',x==e)));
+  const X=x=>40+x*240,Y=y=>260-y*240;
+  const pts=E.roc;
+  const ln=pts.map(p=>X(p[0]).toFixed(1)+','+Y(p[1]).toFixed(1)).join(' '),ox=1-E.spec,oy=E.sens;
+  $('#rocsvg').setAttribute('aria-label',`Curva ROC de la regresión logística, AUC ${d3(E.aucL)}`);
+  $('#roc').innerHTML=`<rect x="40" y="20" width="240" height="240" fill="#fff" stroke="#d6deef"/><line x1="40" y1="260" x2="280" y2="20" stroke="#9aa8c6" stroke-dasharray="5 5"/><polygon points="${X(0)},260 ${ln} ${X(1)},260" fill="#2b5fd9" opacity=".12"/><polyline points="${ln}" fill="none" stroke="#2b5fd9" stroke-width="3" stroke-linejoin="round"/><circle cx="${X(ox)}" cy="${Y(oy)}" r="7" fill="#e5484d"/><text x="${X(ox)+12}" y="${Y(oy)+18}">Corte score ≥ 2</text><text x="150" y="292">1 − Especificidad</text><text x="12" y="150" transform="rotate(-90 12 150)">Sensibilidad</text><text x="150" y="212">AUC = ${d3(E.aucL)}</text>`;
+  code(tabActual);
+}
+
+function textosCodigo(){
+  const b=MODEL.lr,N=MODEL.nn,mat=m=>'[\n'+m.map(r=>'  ['+r.map(d2).join(', ')+']').join(',\n')+'\n]';
+  return [['const flags = {\n  plat: plat <= 75000 ? 1 : 0,\n  pcv:  pcv  >= 42    ? 1 : 0,\n  alt:  alt  >= 70    ? 1 : 0,\n  wbc:  wbc  >= 7000  ? 1 : 0\n};\nconst score = hyp*3 + flags.plat + flags.pcv + flags.alt + flags.wbc;\nconst altoRiesgo = score >= 2;','Cada valor de laboratorio pasa a 0 o 1 según su corte ROC. La hipotensión pesa 3 puntos por su gravedad. Con score ≥ 2 se marca alto riesgo: basta la hipotensión sola o dos alteraciones de laboratorio. El score es una regla fija: no se entrena.'],
+  [`const logit = ${d2(b[0])} + hyp*${d2(b[1])} + flags.wbc*${d2(b[2])}\n            + flags.alt*${d2(b[3])} + flags.plat*${d2(b[4])} + flags.pcv*${d2(b[5])};\nconst prob = 1 / (1 + Math.exp(-logit));`,`Coeficientes estimados por máxima verosimilitud con ${TRAIN.fuente} (${TRAIN.D.length} pacientes). ${dec(d2(b[0]))} es el intercepto: el riesgo base cuando no hay ningún factor. Cada coeficiente se suma si su variable vale 1, y la sigmoide convierte el logit en una probabilidad entre 0 y 1.`],
+  [`// Red 5-4-1: 5 entradas, 4 neuronas ocultas (ReLU), 1 salida (sigmoide)\nconst x = [hyp, flags.wbc, flags.alt, flags.plat, flags.pcv];\nconst h = W1.map((w, j) => Math.max(0, b1[j] + w.reduce((s, v, k) => s + v*x[k], 0)));\nconst prob = 1 / (1 + Math.exp(-(b2 + h.reduce((s, v, j) => s + v*W2[j], 0))));\n\n// Pesos entrenados\nconst W1 = ${mat(N.W1)};\nconst b1 = [${N.b1.map(d2).join(', ')}];\nconst W2 = [${N.W2.map(d2).join(', ')}];\nconst b2 = ${d2(N.b2)};`,`Arquitectura 5-4-1 entrenada con ${TRAIN.fuente}: usa las cinco variables. ReLU (max(0, x)) apaga los valores negativos en la capa oculta y la sigmoide da la probabilidad. Se entrenó con Adam durante 3.000 épocas y una regularización L2 pequeña; una neurona con todos sus pesos en 0 significa que la red no la necesitó.`],
+  ['// Una sola función de predicción para todos los modos\nfunction predecir(r) { /* score, logística y red */ }\n\n// Lote: cada fila del CSV o Excel pasa por la misma función\nconst filas = leerCSV(texto);   // id;hipotension;plaquetas;...\nconst resultados = filas\n  .filter(f => f.err.length === 0)\n  .map(f => ({ ...f, ...predecir(f) }));','La calculadora y el lote no tienen modelos propios: llaman a la misma función predecir() que la calculadora individual, así que un paciente da el mismo resultado en cualquier modo. Cada fila se valida antes de predecir y las filas con error se apartan sin detener el lote.'],
+  ['// Al subir un archivo con desenlace (columna complicado o GROUPS)\nconst D = filas\n  .filter(f => f.err.length === 0 && f.y !== undefined)\n  .map(f => ({ x: [f.h, f.wbc, f.alt, f.plat, f.pcv], y: f.y }));\n\nconst lr  = entrenarLogistica(D);  // máxima verosimilitud (IRLS)\nconst red = entrenarRed(D);        // 5-4-1, Adam, 3.000 épocas\nMODEL = { lr, nn: red };           // se usa en toda la página\nconst m = evaluar(D, MODEL);       // sensibilidad, AUC, curva ROC…','Cuando subes un CSV o Excel que trae el desenlace de cada paciente, la página vuelve a entrenar la regresión logística y la red con esos datos, recalcula la cohorte, las métricas y la curva ROC, y guarda el modelo en el navegador para la próxima visita. En el formato MASTER CHART, GROUPS = 2 es dengue complicado y BP AT ADMISSION = 2 es hipotensión.']];
+}
+function code(i){tabActual=i;const C=textosCodigo();$('#code').textContent=C[i][0];$('#expl').textContent=C[i][1];$$('.tabs button').forEach(b=>b.classList.toggle('on',b.dataset.c==i))}
+renderEstudio();
+
+/* Riel de capítulos */
+const io=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting)$$('.rail a').forEach(a=>a.classList.toggle('on',a.getAttribute('href')=='#'+e.target.id))}),{rootMargin:'-40% 0px -55% 0px'});
+$$('section.ch').forEach(s=>io.observe(s));
+</script>
+</body>
+</html>
